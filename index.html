@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>2025冬日大富翁 – 金銀箱子隨機獎勵版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft JhengHei;overflow:hidden;}
+#map{
+  position:relative;
+  width:96vw;max-width:1100px;
+  aspect-ratio:1/1.12;
+  margin:10px auto;
+  background:url('map_1_bg.png') center/contain no-repeat #0f0c29;
+  border-radius:24px;box-shadow:0 20px 100px rgba(0,0,0,0.9);
+  overflow:hidden;
+}
+.grid{
+  position:absolute;
+  width:12%;height:12%;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  transform:translate(-50%,-48%);
+}
+.chest{
+  position:absolute;
+  width:8.6%;height:8.6%;
+  background-size:contain;
+  transform:translate(-50%,-60%);
+  pointer-events:none;
+}
+.chest1{background-image:url('1_treasure_chest_icon@2x.5903d80b.png');} 
+.chest2{background-image:url('2_treasure_chest_icon@2x.de1f4b4f.png');} 
+
+#tools{
+  position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.8);padding:12px 20px;border-radius:50px;
+  color:#fff;font-size:14px;z-index:9999;
+  backdrop-filter:blur(10px);
+}
+#tools.locked { display:none; }
+
+#diceBtn{
+  position:fixed;right:15px;
+  bottom:15px;
+  padding:14px 28px;background:#ff6a00;color:white;
+  border:none;border-radius:50px;font-size:18px;cursor:pointer;
+  z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.7);
+}
+
+#log{
+  position:fixed;
+  top:20%;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:12px;
+  font-size:1em;
+  font-weight:bold;
+  text-align:center;
+  max-width:90vw;
+  z-index:99999;
+  backdrop-filter:blur(5px);
+  opacity:0;
+  transition:opacity 0.5s;
+}
+
+#rewardList{
+  position:fixed;
+  top:10px;
+  left:10px;
+  z-index:99999;
+  max-height:70vh;
+  overflow-y:auto;
+  color:#fff;
+  font-size:1em;
+  line-height:1.4em;
+  backdrop-filter:blur(5px);
+}
+
+#stats{
+  position:fixed;
+  top:10px;
+  right:10px;
+  z-index:99999;
+  color:#fff;
+  font-size:1em;
+  background:rgba(0,0,0,0.6);
+  padding:10px 14px;
+  border-radius:10px;
+  backdrop-filter:blur(5px);
+}
+
+.avatar-wrapper{
+  width:11.2%; height:11.2%;
+  position:absolute;
+  transform:translate(-25%, -50%);
+  z-index:99999;
+  transition:transform .6s cubic-bezier(0.34,1.56,0.64,1);
+}
+.avatar-wrapper img{
+  width:50%; height:50%; border-radius:50%;
+  border:6px solid #fff;
+  box-shadow:0 0 40px #fff, 0 0 80px #ff6a00;
+  object-fit:cover;
+}
+
+.selected-overlay{
+  position:absolute;
+  width:12%; height:12%;
+  background:url('map_grid_selected@2x.b6f3bcaf.png') center/contain no-repeat;
+  top:0; left:0;
+  pointer-events:none;
+  z-index:9998;
+  transform:translate(-50%,-48%);
+  transition:transform .6s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* 手機響應 */
+@media(max-width:768px){
+  #stats{
+    top:auto;
+    bottom:10px;
+    right:10px;
+    font-size:0.8em;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="tools">左鍵拖曳＝移動｜左鍵點＝切紅藍｜右鍵＝調圖層｜雙擊＝切寶箱</div>
+<button id="diceBtn">擲一次骰子 (消耗1000電池)</button>
+<div id="log"></div>
+<div id="rewardList"></div>
+<div id="stats">次數: 0<br>總消耗電池: 0<br>總消耗元: 0<br>總獲得電池: 0<br>總獲得元: 0</div>
+
+<script>
+document.getElementById('tools').style.display = 'none';
+
+const BOARD = [
+  {l:49.909, t:65.422, award:false, chest:0, z:18 },
+  {l:56.273, t:61.769, award:false, chest:0, z:17 },
+  {l:62.818, t:58.360, award:true, chest:1, z:16 },
+  {l:69.273, t:54.789, award:true, chest:1, z:15 },
+  {l:75.818, t:51.299, award:true, chest:2, z:14 },
+  {l:69.273, t:47.808, award:false, chest:0, z:13 },
+  {l:62.818, t:44.481, award:true, chest:1, z:12 },
+  {l:56.273, t:41.071, award:false, chest:0, z:11 },
+  {l:50.000, t:44.562, award:true, chest:1, z:13 },
+  {l:43.909, t:48.133, award:true, chest:1, z:13 },
+  {l:37.182, t:44.968, award:true, chest:2, z:12 },
+  {l:30.909, t:48.377, award:false, chest:0, z:13 },
+  {l:24.727, t:51.867, award:true, chest:1, z:14 },
+  {l:31.091, t:55.357, award:false, chest:0, z:15 },
+  {l:25.091, t:59.091, award:false, chest:0, z:16 },
+  {l:31.091, t:62.744, award:true, chest:1, z:17 },
+  {l:37.182, t:65.828, award:false, chest:2, z:18 },
+  {l:43.273, t:62.500, award:true, chest:1, z:10 }
+];
+
+let state = BOARD.map(s=>({...s}));
+const map = document.getElementById('map');
+const log = document.getElementById('log');
+const rewardList = document.getElementById('rewardList');
+const stats = document.getElementById('stats');
+let currentPos = 0;
+let turnCount = 0;
+let totalBattery = 0;
+let totalRewardBattery = 0;
+
+const silverBoxItems = [
+  {name:"木质鹿纹簪", value:120, prob:21.6, img:"120.png"},
+  {name:"紫金琵琶坠", value:250, prob:27.2, img:"250.png"},
+  {name:"白玉迦陵鸟", value:660, prob:31.2, img:"660.png"},
+  {name:"珐琅九色鹿", value:1000, prob:15.0, img:"1000.png"},
+  {name:"琉璃飞天像", value:3000, prob:5.0, img:"3000.png"}
+];
+const goldBoxItems = [
+  {name:"紫金琵琶坠", value:250, prob:12.0, img:"250.png"},
+  {name:"白玉迦陵鸟", value:660, prob:27.0, img:"660.png"},
+  {name:"珐琅九色鹿", value:1000, prob:36.0, img:"1000.png"},
+  {name:"琉璃飞天像", value:3000, prob:21.0, img:"3000.png"},
+  {name:"赤金图腾壁", value:30000, prob:4.0, img:"30000.png"}
+];
+
+// 產生格子和寶箱
+state.forEach((s,i)=>{
+  const g=document.createElement('div');
+  g.className='grid';
+  g.dataset.index=i;
+  g.dataset.z=s.z;
+  g.style.left=s.l+'%';
+  g.style.top=s.t+'%';
+  g.style.zIndex=s.z;
+  g.style.backgroundImage=s.award
+    ? `url('map_1_award_grid_unselected_bg@2x.7c43d2b5.png')`
+    : `url('map_1_unaward_grid_unselected_bg@2x.fa126b80.png')`;
+  map.appendChild(g);
+
+  if(s.chest>0){
+    const c=document.createElement('div');
+    c.className=`chest chest${s.chest===1?1:2}`;
+    c.dataset.for=i;
+    c.style.left=g.style.left;
+    c.style.top=g.style.top;
+    c.style.zIndex=s.z+1;
+    map.appendChild(c);
+  }
+});
+
+// 玩家頭像
+const player=document.createElement('div');
+player.className='avatar-wrapper';
+player.innerHTML=`<img class="avatar" src="logo.avif" onerror="this.src='https://i0.hdslb.com/bfs/face/9ad872bf5a4739a4a10b09b0b4805da2410d2d01.jpg'">`;
+map.appendChild(player);
+
+// 選擇框
+const overlay=document.createElement('div');
+overlay.className='selected-overlay';
+map.appendChild(overlay);
+
+function moveTo(pos){
+  const c=state[pos];
+  const left=c.l+'%';
+  const top=c.t+'%';
+  player.style.left=left;
+  player.style.top=top;
+  overlay.style.left=left;
+  overlay.style.top=top;
+}
+moveTo(currentPos);
+
+function getBoxReward(isGold){
+  const items=isGold?goldBoxItems:silverBoxItems;
+  const rnd=Math.random()*100;
+  let sum=0;
+  for(const item of items){
+    sum+=item.prob;
+    if(rnd<=sum) return item;
+  }
+  return items[items.length-1];
+}
+
+function updateStats(){
+  stats.innerHTML=`次數: ${turnCount}<br>`+
+                  `總消耗電池: ${totalBattery}<br>`+
+                  `總消耗元: ${Math.floor(totalBattery/10)}<br>`+
+                  `總獲得電池: ${totalRewardBattery}<br>`+
+                  `總獲得元: ${Math.floor(totalRewardBattery/10)}`;
+}
+
+// log 顯示並自動消失
+function showLog(msg){
+  log.innerHTML=msg;
+  log.style.opacity='1';
+  clearTimeout(log.timer);
+  log.timer=setTimeout(()=>{ log.style.opacity='0'; }, 3000);
+}
+
+// 擲骰子
+document.getElementById('diceBtn').onclick=()=>{
+  turnCount++;
+  totalBattery+=1000;
+  updateStats();
+
+  const steps=Math.floor(Math.random()*6)+1;
+  showLog(`骰子轉轉轉……擲出 <b style="color:#ffeb3b;font-size:1.2em">${steps}</b> 點！`);
+
+  let cnt=0;
+  const timer=setInterval(()=>{
+    currentPos=(currentPos+1)%state.length;
+    moveTo(currentPos);
+    if(++cnt>=steps){
+      clearInterval(timer);
+      setTimeout(()=>{
+        const c=state[currentPos];
+        let msg=`空格子 :(`;
+        let rewardValue=0;
+        if(c.chest===1){
+          const reward=getBoxReward(true);
+          rewardValue=reward.value;
+          totalRewardBattery+=rewardValue;
+          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#ffd700">${reward.name}</b>（價值 ${reward.value} 電池）`;
+        } else if(c.chest===2){
+          const reward=getBoxReward(false);
+          rewardValue=reward.value;
+          totalRewardBattery+=rewardValue;
+          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#c0c0c0">${reward.name}</b>（價值 ${reward.value} 電池）`;
+        }
+        showLog(msg);
+        updateStats();
+
+        if(c.chest>0){
+          const li=document.createElement('div');
+          li.innerHTML=msg;
+          rewardList.appendChild(li);
+        }
+      },600);
+    }
+  },500);
+};
+</script>
+</body>
+</html>
