@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025冬日大富翁 – 金銀箱子隨機獎勵版</title>
+<title>2025冬日大富翁 – 金銀箱子隨機獎勵版（已反轉獎勵）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft JhengHei;overflow:hidden;}
@@ -252,7 +252,6 @@ function updateStats(){
                   `總獲得元: ${Math.floor(totalRewardBattery/10)}`;
 }
 
-// log 顯示並自動消失
 function showLog(msg){
   log.innerHTML=msg;
   log.style.opacity='1';
@@ -279,17 +278,23 @@ document.getElementById('diceBtn').onclick=()=>{
         const c=state[currentPos];
         let msg=`空格子 :(`;
         let rewardValue=0;
+
+        // 重點：這裡反轉了！
         if(c.chest===1){
-          const reward=getBoxReward(true);
-          rewardValue=reward.value;
-          totalRewardBattery+=rewardValue;
-          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#ffd700">${reward.name}</b>（價值 ${reward.value} 電池）`;
-        } else if(c.chest===2){
+          // 外觀是金色寶箱 → 實際開「銀箱」（低獎勵）
           const reward=getBoxReward(false);
           rewardValue=reward.value;
           totalRewardBattery+=rewardValue;
           msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#c0c0c0">${reward.name}</b>（價值 ${reward.value} 電池）`;
+        } 
+        else if(c.chest===2){
+          // 外觀是銀色寶箱 → 實際開「金箱」（高獎勵！容易出3萬）
+          const reward=getBoxReward(true);
+          rewardValue=reward.value;
+          totalRewardBattery+=rewardValue;
+          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#ffd700">${reward.name}</b>（價值 ${reward.value} 電池）`;
         }
+
         showLog(msg);
         updateStats();
 
