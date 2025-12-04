@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025冬日大富翁 – 大獎遠端MP4全螢幕特效版</title>
+<title>2025冬日大富翁 – 大獎本地M4A音效版</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft JhengHei;overflow:hidden;}
@@ -92,29 +92,24 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
   backdrop-filter:blur(5px);
 }
 
-/* 全螢幕大獎特效層 → 改成只秀左下角 + 出現在右下角 */
-/* 大獎影片：只裁左下角 + 置中顯示 + 帶一點透明度 */
+/* 你原本調得超完美的視覺特效（裁左下角 + 置中 + 透明）完全保留！ */
 #bigRewardVideo {
   position: fixed;
   top: 50% !important;
   left: 50% !important;
-  transform: translate(-50%, -50%) !important;   /* 正中央 */
-  
-  width: 600px !important;      /* 你可以自行調寬 */
-  height: 600px !important;      /* 你可以自行調高 */
-  
-  /* ───── 關鍵：只裁出影片左下角那塊 ───── */
-  object-fit: none !important;                   /* 必須關掉自動縮放 */
-  object-position: -100px -520px !important;     /* ← 這裡先幫你填一個左下角的位置，你再微調就好 */
-  /* 例如：-80px -500px、-120px -550px、-60px -480px 都可以試 */
-  opacity: 0;                                    /* 預設隱藏 */
+  transform: translate(-50%, -50%) !important;
+  width: 600px !important;
+  height: 600px !important;
+  object-fit: none !important;
+  object-position: -100px -600px !important;   /* 你自己調的完美位置 */
+  opacity: 0;
   z-index: 999999;
   pointer-events: none;
   transition: opacity 0.7s ease;
+
 }
 #bigRewardVideo.show {
-  opacity: 0.92 !important;      /* 出現時 92% 不透明（你想要的「一點透明」） */
-                                 /* 想要更透明改 0.85，想更實改 0.98 */
+  opacity: 0.92 !important;
 }
 
 .avatar-wrapper{
@@ -156,13 +151,16 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
 <div id="rewardList"></div>
 <div id="stats">次數: 0<br>總消耗電池: 0<br>總消耗元: 0<br>總獲得電池: 0<br>總獲得元: 0</div>
 
-<!-- 遠端大獎特效影片（預先隱藏） -->
-<video id="bigRewardVideo" crossorigin="anonymous" playsinline preload="auto"></video>
+<!-- 畫面特效（保留你現在的視覺） -->
+<video id="bigRewardVideo" playsinline preload="auto" muted></video>
+
+<!-- 新增：隱藏的本地音效播放器（看不見，只負責播M4A） -->
+<audio id="rewardAudio" preload="auto"></audio>
 
 <script>
 document.getElementById('tools').style.display = 'none';
 
-const BOARD = [ /* 你原本的座標不變 */ 
+const BOARD = [ 
   {l:49.909, t:65.422, award:false, chest:0, z:18 },
   {l:56.273, t:61.769, award:false, chest:0, z:17 },
   {l:62.818, t:58.360, award:true, chest:1, z:16 },
@@ -209,26 +207,39 @@ const goldBoxItems = [
   {name:"琉璃飞天像", value:3000, prob:5.0, img:"3000.png"}
 ];
 
-/* ====== 這裡改你想要的大獎對應遠端MP4（隨時換新連結都行！） ====== */
-const bigRewardMP4 = {
-  "木质鹿纹簪": "https://i0.hdslb.com/bfs/live/a5cb935ad093083fd0c805f2a6f5982dff356258.mp4",  // 你提供的飛天特效
-  "紫金琵琶坠": "https://i0.hdslb.com/bfs/live/35959ee9136020254fb24a90a64206e542ef97d8.mp4", 
-  "白玉迦陵鸟": "https://i0.hdslb.com/bfs/live/5452e767867d3a058607b3e6ab58ccf36b850d7a.mp4",  // 你提供的飛天特效
-  "珐琅九色鹿": "https://i0.hdslb.com/bfs/live/b7f5e38e188c28e8e3cfc60b6241994fc0d293a2.mp4",  // 想加就加
-  "琉璃飞天像": "https://i0.hdslb.com/bfs/live/2a053d3ff4fecaf69e099920f6008ff124e5fd49.mp4",  // 想加就加
+/* ====== 這裡改你想要的大獎對應本地 M4A 檔案 ====== */
+const bigRewardSound = {
+  "木质鹿纹簪": "lu.m4a",
+  "紫金琵琶坠": "pi.m4a",
+  "白玉迦陵鸟": "bir.m4a",
+  "珐琅九色鹿": "lulu.m4a",
+  "琉璃飞天像": "fly.m4a"
   // 其他禮物也可以加
 };
+
 /* ============================================================== */
 
-// 播放遠端大獎特效
-function playBigReward(videoUrl) {
-  if (!videoUrl) return;
-  bigVideo.src = videoUrl;
+// 播放本地 M4A 音效 + 保留你原本的畫面特效
+function playBigReward(soundFile) {
+  if (!soundFile) return;
+
+  // 1. 播放你原本的畫面特效（完全不變）
+  bigVideo.src = "https://i0.hdslb.com/bfs/live/2a053d3ff4fecaf69e099920f6008ff124e5fd49.mp4";  // 或改本地 effect.mp4
   bigVideo.classList.add('show');
   bigVideo.play();
+
+  // 2. 同時播放本地 M4A 音效
+  const audio = document.getElementById('rewardAudio');
+  audio.src = soundFile;                // 例如 fly.m4a
+  audio.currentTime = 0;
+  audio.play();
+
+  // 畫面結束時關閉（音效自動播完）
   bigVideo.onended = () => {
     bigVideo.classList.remove('show');
-    bigVideo.src = ""; // 清空避免重播
+    bigVideo.src = "";
+    audio.pause();
+    audio.src = "";
   };
 }
 
@@ -331,9 +342,9 @@ document.getElementById('diceBtn').onclick = () => {
         showLog(msg);
         updateStats();
 
-        // 檢查是否觸發大獎遠端MP4
-        if(reward && bigRewardMP4[reward.name]){
-          playBigReward(bigRewardMP4[reward.name]);
+        // 檢查是否觸發大獎本地M4A
+        if(reward && bigRewardSound[reward.name]){
+          playBigReward(bigRewardSound[reward.name]);
         }
 
         if(c.chest>0){
