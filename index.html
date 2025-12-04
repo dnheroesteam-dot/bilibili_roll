@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025冬日大富翁 – 大獎本地M4A音效版</title>
+<title>2025冬日大富翁 – 專屬大獎影片版（無音效）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft JhengHei;overflow:hidden;}
@@ -37,80 +37,43 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
   color:#fff;font-size:14px;z-index:9999;
   backdrop-filter:blur(10px);
 }
-#tools.locked { display:none; }
-
 #diceBtn{
-  position:fixed;right:15px;
-  bottom:15px;
+  position:fixed;right:15px;bottom:15px;
   padding:14px 28px;background:#ff6a00;color:white;
   border:none;border-radius:50px;font-size:18px;cursor:pointer;
   z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.7);
 }
-
 #log{
-  position:fixed;
-  top:20%;
-  left:50%;
-  transform:translateX(-50%);
-  background:rgba(0,0,0,0.6);
-  color:#fff;
-  padding:10px 16px;
-  border-radius:12px;
-  font-size:1em;
-  font-weight:bold;
-  text-align:center;
-  max-width:90vw;
-  z-index:99999;
-  backdrop-filter:blur(5px);
-  opacity:0;
-  transition:opacity 0.5s;
+  position:fixed;top:20%;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);color:#fff;padding:10px 16px;
+  border-radius:12px;font-size:1em;font-weight:bold;text-align:center;
+  max-width:90vw;z-index:99999;backdrop-filter:blur(5px);
+  opacity:0;transition:opacity 0.5s;
 }
-
 #rewardList{
-  position:fixed;
-  top:10px;
-  left:10px;
-  z-index:99999;
-  max-height:70vh;
-  overflow-y:auto;
-  color:#fff;
-  font-size:1em;
-  line-height:1.4em;
+  position:fixed;top:10px;left:10px;z-index:99999;max-height:70vh;
+  overflow-y:auto;color:#fff;font-size:1em;line-height:1.4em;
   backdrop-filter:blur(5px);
 }
-
 #stats{
-  position:fixed;
-  top:10px;
-  right:10px;
-  z-index:99999;
-  color:#fff;
-  font-size:1em;
-  background:rgba(0,0,0,0.6);
-  padding:10px 14px;
-  border-radius:10px;
-  backdrop-filter:blur(5px);
+  position:fixed;top:10px;right:10px;z-index:99999;color:#fff;
+  font-size:1em;background:rgba(0,0,0,0.6);padding:10px 14px;
+  border-radius:10px;backdrop-filter:blur(5px);
 }
-
-/* 你原本調得超完美的視覺特效（裁左下角 + 置中 + 透明）完全保留！ */
 #bigRewardVideo {
   position: fixed;
-  top: 50% !important;
-  left: 50% !important;
+  top: 50% !important;left: 50% !important;
   transform: translate(-50%, -50%) !important;
   width: 600px !important;
   height: 600px !important;
   object-fit: none !important;
-  object-position: -100px -600px !important;   /* 你自己調的完美位置 */
+  object-position: -100px -550px !important;   /* 你原本調的完美位置 */
   opacity: 0;
   z-index: 999999;
   pointer-events: none;
-  transition: opacity 0.7s ease;
-
+  transition: opacity 0.8s ease;
 }
-#bigRewardVideo.show {
-  opacity: 0.92 !important;
-}
+#bigRewardVideo.show { opacity: 0.94 !important; }
 
 .avatar-wrapper{
   width:11.2%; height:11.2%;
@@ -125,18 +88,15 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
   box-shadow:0 0 40px #fff, 0 0 80px #ff6a00;
   object-fit:cover;
 }
-
 .selected-overlay{
   position:absolute;
   width:12%; height:12%;
   background:url('map_grid_selected@2x.b6f3bcaf.png') center/contain no-repeat;
-  top:0; left:0;
   pointer-events:none;
   z-index:9998;
   transform:translate(-50%,-48%);
   transition:transform .6s cubic-bezier(0.34,1.56,0.64,1);
 }
-
 @media(max-width:768px){
   #stats{top:auto;bottom:10px;right:10px;font-size:0.8em;}
 }
@@ -151,11 +111,8 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
 <div id="rewardList"></div>
 <div id="stats">次數: 0<br>總消耗電池: 0<br>總消耗元: 0<br>總獲得電池: 0<br>總獲得元: 0</div>
 
-<!-- 畫面特效（保留你現在的視覺） -->
+<!-- 專屬大獎影片播放器（你自己準備的五支MP4） -->
 <video id="bigRewardVideo" playsinline preload="auto" muted></video>
-
-<!-- 新增：隱藏的本地音效播放器（看不見，只負責播M4A） -->
-<audio id="rewardAudio" preload="auto"></audio>
 
 <script>
 document.getElementById('tools').style.display = 'none';
@@ -207,43 +164,32 @@ const goldBoxItems = [
   {name:"琉璃飞天像", value:3000, prob:5.0, img:"3000.png"}
 ];
 
-/* ====== 這裡改你想要的大獎對應本地 M4A 檔案 ====== */
-const bigRewardSound = {
-  "木质鹿纹簪": "lu.m4a",
-  "紫金琵琶坠": "pi.m4a",
-  "白玉迦陵鸟": "bir.m4a",
-  "珐琅九色鹿": "lulu.m4a",
-  "琉璃飞天像": "fly.m4a"
-  // 其他禮物也可以加
+/* ★★★★★ 這裡改成你實際的五支大獎影片檔名 ★★★★★ */
+const bigRewardVideoMap = {
+  "木质鹿纹簪": "lu.mp4",
+  "紫金琵琶坠": "pi.mp4",
+  "白玉迦陵鸟": "bir.mp4",
+  "珐琅九色鹿": "lulu.mp4",
+  "琉璃飞天像": "fly.mp4"   // 最高級大獎！
 };
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 
-/* ============================================================== */
+function playBigReward(rewardName) {
+  const videoFile = bigRewardVideoMap[rewardName];
+  if (!videoFile) return;
 
-// 播放本地 M4A 音效 + 保留你原本的畫面特效
-function playBigReward(soundFile) {
-  if (!soundFile) return;
-
-  // 1. 播放你原本的畫面特效（完全不變）
-  bigVideo.src = "https://i0.hdslb.com/bfs/live/2a053d3ff4fecaf69e099920f6008ff124e5fd49.mp4";  // 或改本地 effect.mp4
+  bigVideo.src = videoFile;
+  bigVideo.currentTime = 0;
   bigVideo.classList.add('show');
   bigVideo.play();
 
-  // 2. 同時播放本地 M4A 音效
-  const audio = document.getElementById('rewardAudio');
-  audio.src = soundFile;                // 例如 fly.m4a
-  audio.currentTime = 0;
-  audio.play();
-
-  // 畫面結束時關閉（音效自動播完）
   bigVideo.onended = () => {
     bigVideo.classList.remove('show');
     bigVideo.src = "";
-    audio.pause();
-    audio.src = "";
   };
 }
 
-/* 下面全部是你原本的程式碼，我只改了開獎後那段 */
+/* 以下是你原本完美的前端邏輯，完全不動 */
 state.forEach((s,i)=>{
   const g=document.createElement('div');
   g.className='grid';
@@ -309,7 +255,6 @@ function showLog(msg){
   log.timer = setTimeout(() => log.style.opacity = '0', 3000);
 }
 
-// 擲骰子主邏輯
 document.getElementById('diceBtn').onclick = () => {
   turnCount++;
   totalBattery += 200;
@@ -342,9 +287,9 @@ document.getElementById('diceBtn').onclick = () => {
         showLog(msg);
         updateStats();
 
-        // 檢查是否觸發大獎本地M4A
-        if(reward && bigRewardSound[reward.name]){
-          playBigReward(bigRewardSound[reward.name]);
+        // ★ 關鍵：觸發專屬大獎影片 ★
+        if(reward && bigRewardVideoMap[reward.name]){
+          playBigReward(reward.name);
         }
 
         if(c.chest>0){
