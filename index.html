@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025冬日大富翁 – 金銀箱子隨機獎勵版（已反轉獎勵）</title>
+<title>2025冬日大富翁 – 大獎遠端MP4全螢幕特效版</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft JhengHei;overflow:hidden;}
@@ -92,6 +92,31 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
   backdrop-filter:blur(5px);
 }
 
+/* 全螢幕大獎特效層 → 改成只秀左下角 + 出現在右下角 */
+/* 大獎影片：只裁左下角 + 置中顯示 + 帶一點透明度 */
+#bigRewardVideo {
+  position: fixed;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;   /* 正中央 */
+  
+  width: 600px !important;      /* 你可以自行調寬 */
+  height: 600px !important;      /* 你可以自行調高 */
+  
+  /* ───── 關鍵：只裁出影片左下角那塊 ───── */
+  object-fit: none !important;                   /* 必須關掉自動縮放 */
+  object-position: -100px -520px !important;     /* ← 這裡先幫你填一個左下角的位置，你再微調就好 */
+  /* 例如：-80px -500px、-120px -550px、-60px -480px 都可以試 */
+  opacity: 0;                                    /* 預設隱藏 */
+  z-index: 999999;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+#bigRewardVideo.show {
+  opacity: 0.92 !important;      /* 出現時 92% 不透明（你想要的「一點透明」） */
+                                 /* 想要更透明改 0.85，想更實改 0.98 */
+}
+
 .avatar-wrapper{
   width:11.2%; height:11.2%;
   position:absolute;
@@ -117,14 +142,8 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
   transition:transform .6s cubic-bezier(0.34,1.56,0.64,1);
 }
 
-/* 手機響應 */
 @media(max-width:768px){
-  #stats{
-    top:auto;
-    bottom:10px;
-    right:10px;
-    font-size:0.8em;
-  }
+  #stats{top:auto;bottom:10px;right:10px;font-size:0.8em;}
 }
 </style>
 </head>
@@ -132,15 +151,18 @@ body,html{margin:0;padding:0;height:100%;background:#000;font-family:Microsoft J
 
 <div id="map"></div>
 <div id="tools">左鍵拖曳＝移動｜左鍵點＝切紅藍｜右鍵＝調圖層｜雙擊＝切寶箱</div>
-<button id="diceBtn">擲一次骰子 (消耗1000電池)</button>
+<button id="diceBtn">擲一次骰子 (消耗200電池)</button>
 <div id="log"></div>
 <div id="rewardList"></div>
 <div id="stats">次數: 0<br>總消耗電池: 0<br>總消耗元: 0<br>總獲得電池: 0<br>總獲得元: 0</div>
 
+<!-- 遠端大獎特效影片（預先隱藏） -->
+<video id="bigRewardVideo" crossorigin="anonymous" playsinline preload="auto"></video>
+
 <script>
 document.getElementById('tools').style.display = 'none';
 
-const BOARD = [
+const BOARD = [ /* 你原本的座標不變 */ 
   {l:49.909, t:65.422, award:false, chest:0, z:18 },
   {l:56.273, t:61.769, award:false, chest:0, z:17 },
   {l:62.818, t:58.360, award:true, chest:1, z:16 },
@@ -166,27 +188,51 @@ const map = document.getElementById('map');
 const log = document.getElementById('log');
 const rewardList = document.getElementById('rewardList');
 const stats = document.getElementById('stats');
+const bigVideo = document.getElementById('bigRewardVideo');
 let currentPos = 0;
 let turnCount = 0;
 let totalBattery = 0;
 let totalRewardBattery = 0;
 
 const silverBoxItems = [
+  {name:"石质兽纹牌", value:50, prob:43, img:"50.png"},
+  {name:"木质鹿纹簪", value:120, prob:26, img:"120.png"},
+  {name:"紫金琵琶坠", value:250, prob:25.5, img:"250.png"},
+  {name:"白玉迦陵鸟", value:660, prob:3.5, img:"660.png"},
+  {name:"珐琅九色鹿", value:1000, prob:2, img:"1000.png"}
+];
+const goldBoxItems = [
   {name:"木质鹿纹簪", value:120, prob:21.6, img:"120.png"},
   {name:"紫金琵琶坠", value:250, prob:27.2, img:"250.png"},
   {name:"白玉迦陵鸟", value:660, prob:31.2, img:"660.png"},
-  {name:"珐琅九色鹿", value:1000, prob:15.0, img:"1000.png"},
+  {name:"珐琅九色鹿", value:1000, prob:15, img:"1000.png"},
   {name:"琉璃飞天像", value:3000, prob:5.0, img:"3000.png"}
 ];
-const goldBoxItems = [
-  {name:"紫金琵琶坠", value:250, prob:12.0, img:"250.png"},
-  {name:"白玉迦陵鸟", value:660, prob:27.0, img:"660.png"},
-  {name:"珐琅九色鹿", value:1000, prob:36.0, img:"1000.png"},
-  {name:"琉璃飞天像", value:3000, prob:21.0, img:"3000.png"},
-  {name:"赤金图腾壁", value:30000, prob:4.0, img:"30000.png"}
-];
 
-// 產生格子和寶箱
+/* ====== 這裡改你想要的大獎對應遠端MP4（隨時換新連結都行！） ====== */
+const bigRewardMP4 = {
+  "木质鹿纹簪": "https://i0.hdslb.com/bfs/live/a5cb935ad093083fd0c805f2a6f5982dff356258.mp4",  // 你提供的飛天特效
+  "紫金琵琶坠": "https://i0.hdslb.com/bfs/live/35959ee9136020254fb24a90a64206e542ef97d8.mp4", 
+  "白玉迦陵鸟": "https://i0.hdslb.com/bfs/live/5452e767867d3a058607b3e6ab58ccf36b850d7a.mp4",  // 你提供的飛天特效
+  "珐琅九色鹿": "https://i0.hdslb.com/bfs/live/b7f5e38e188c28e8e3cfc60b6241994fc0d293a2.mp4",  // 想加就加
+  "琉璃飞天像": "https://i0.hdslb.com/bfs/live/2a053d3ff4fecaf69e099920f6008ff124e5fd49.mp4",  // 想加就加
+  // 其他禮物也可以加
+};
+/* ============================================================== */
+
+// 播放遠端大獎特效
+function playBigReward(videoUrl) {
+  if (!videoUrl) return;
+  bigVideo.src = videoUrl;
+  bigVideo.classList.add('show');
+  bigVideo.play();
+  bigVideo.onended = () => {
+    bigVideo.classList.remove('show');
+    bigVideo.src = ""; // 清空避免重播
+  };
+}
+
+/* 下面全部是你原本的程式碼，我只改了開獎後那段 */
 state.forEach((s,i)=>{
   const g=document.createElement('div');
   g.className='grid';
@@ -203,7 +249,6 @@ state.forEach((s,i)=>{
   if(s.chest>0){
     const c=document.createElement('div');
     c.className=`chest chest${s.chest===1?1:2}`;
-    c.dataset.for=i;
     c.style.left=g.style.left;
     c.style.top=g.style.top;
     c.style.zIndex=s.z+1;
@@ -211,101 +256,94 @@ state.forEach((s,i)=>{
   }
 });
 
-// 玩家頭像
 const player=document.createElement('div');
 player.className='avatar-wrapper';
 player.innerHTML=`<img class="avatar" src="logo.avif" onerror="this.src='https://i0.hdslb.com/bfs/face/9ad872bf5a4739a4a10b09b0b4805da2410d2d01.jpg'">`;
 map.appendChild(player);
 
-// 選擇框
 const overlay=document.createElement('div');
 overlay.className='selected-overlay';
 map.appendChild(overlay);
 
 function moveTo(pos){
   const c=state[pos];
-  const left=c.l+'%';
-  const top=c.t+'%';
-  player.style.left=left;
-  player.style.top=top;
-  overlay.style.left=left;
-  overlay.style.top=top;
+  player.style.left = overlay.style.left = c.l+'%';
+  player.style.top  = overlay.style.top  = c.t+'%';
 }
 moveTo(currentPos);
 
 function getBoxReward(isGold){
-  const items=isGold?goldBoxItems:silverBoxItems;
-  const rnd=Math.random()*100;
-  let sum=0;
+  const items = isGold ? goldBoxItems : silverBoxItems;
+  const rnd = Math.random()*100;
+  let sum = 0;
   for(const item of items){
-    sum+=item.prob;
-    if(rnd<=sum) return item;
+    sum += item.prob;
+    if(rnd <= sum) return item;
   }
   return items[items.length-1];
 }
 
 function updateStats(){
-  stats.innerHTML=`次數: ${turnCount}<br>`+
-                  `總消耗電池: ${totalBattery}<br>`+
-                  `總消耗元: ${Math.floor(totalBattery/10)}<br>`+
-                  `總獲得電池: ${totalRewardBattery}<br>`+
-                  `總獲得元: ${Math.floor(totalRewardBattery/10)}`;
+  stats.innerHTML = `次數: ${turnCount}<br>`+
+                    `總消耗電池: ${totalBattery}<br>`+
+                    `總消耗元: ${Math.floor(totalBattery/10)}<br>`+
+                    `總獲得電池: ${totalRewardBattery}<br>`+
+                    `總獲得元: ${Math.floor(totalRewardBattery/10)}`;
 }
 
 function showLog(msg){
-  log.innerHTML=msg;
-  log.style.opacity='1';
+  log.innerHTML = msg;
+  log.style.opacity = '1';
   clearTimeout(log.timer);
-  log.timer=setTimeout(()=>{ log.style.opacity='0'; }, 3000);
+  log.timer = setTimeout(() => log.style.opacity = '0', 3000);
 }
 
-// 擲骰子
-document.getElementById('diceBtn').onclick=()=>{
+// 擲骰子主邏輯
+document.getElementById('diceBtn').onclick = () => {
   turnCount++;
-  totalBattery+=1000;
+  totalBattery += 200;
   updateStats();
 
-  const steps=Math.floor(Math.random()*6)+1;
+  const steps = Math.floor(Math.random()*6)+1;
   showLog(`骰子轉轉轉……擲出 <b style="color:#ffeb3b;font-size:1.2em">${steps}</b> 點！`);
 
-  let cnt=0;
-  const timer=setInterval(()=>{
-    currentPos=(currentPos+1)%state.length;
+  let cnt = 0;
+  const timer = setInterval(() => {
+    currentPos = (currentPos + 1) % state.length;
     moveTo(currentPos);
-    if(++cnt>=steps){
+    if(++cnt >= steps){
       clearInterval(timer);
-      setTimeout(()=>{
-        const c=state[currentPos];
-        let msg=`空格子 :(`;
-        let rewardValue=0;
+      setTimeout(() => {
+        const c = state[currentPos];
+        let msg = `空格子 :(`;
+        let reward = null;
 
-        // 重點：這裡反轉了！
-        if(c.chest===1){
-          // 外觀是金色寶箱 → 實際開「銀箱」（低獎勵）
-          const reward=getBoxReward(false);
-          rewardValue=reward.value;
-          totalRewardBattery+=rewardValue;
-          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#c0c0c0">${reward.name}</b>（價值 ${reward.value} 電池）`;
-        } 
-        else if(c.chest===2){
-          // 外觀是銀色寶箱 → 實際開「金箱」（高獎勵！容易出3萬）
-          const reward=getBoxReward(true);
-          rewardValue=reward.value;
-          totalRewardBattery+=rewardValue;
-          msg=`<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#ffd700">${reward.name}</b>（價值 ${reward.value} 電池）`;
+        if(c.chest===2){
+          reward = getBoxReward(true);
+          totalRewardBattery += reward.value;
+          msg = `<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#ffd700">${reward.name}</b>（價值 ${reward.value} 電池）`;
+        } else if(c.chest===1){
+          reward = getBoxReward(false);
+          totalRewardBattery += reward.value;
+          msg = `<img src="${reward.img}" style="height:28px;vertical-align:middle;margin-right:6px"> <b style="color:#c0c0c0">${reward.name}</b>（價值 ${reward.value} 電池）`;
         }
 
         showLog(msg);
         updateStats();
 
+        // 檢查是否觸發大獎遠端MP4
+        if(reward && bigRewardMP4[reward.name]){
+          playBigReward(bigRewardMP4[reward.name]);
+        }
+
         if(c.chest>0){
-          const li=document.createElement('div');
-          li.innerHTML=msg;
+          const li = document.createElement('div');
+          li.innerHTML = msg;
           rewardList.appendChild(li);
         }
-      },600);
+      }, 600);
     }
-  },500);
+  }, 500);
 };
 </script>
 </body>
